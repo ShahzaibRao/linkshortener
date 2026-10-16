@@ -1,0 +1,17 @@
+include:
+  - docker/mongo/compose.yml
+  - docker/redis/compose.yml
+  - docker/prometheus/compose.yml
+  - docker/grafana/compose.yml
+
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
