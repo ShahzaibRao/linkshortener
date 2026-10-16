@@ -4,14 +4,33 @@ include:
   - docker/prometheus/compose.yml
   - docker/grafana/compose.yml
 
+
+
+x-app: &app
+  build: .
+  image: linkshortener-app:latest
+  environment:
+    REDIS_URL: redis://redis:6379
+  depends_on:
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
 services:
-  app:
-    build: .
+  app1:
+    <<: *app
+    hostname: app1
     ports:
-      - "127.0.0.1:8000:8000"
-    environment:
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+     - "127.0.0.1:8001:8000"
+  app2:
+    <<: *app
+    hostname: app2
+    ports:
+     - "127.0.0.1:8002:8000"
+  app3:
+    <<: *app
+    hostname: app3
+    ports:
+      - "127.0.0.1:8003:8000"
+
+

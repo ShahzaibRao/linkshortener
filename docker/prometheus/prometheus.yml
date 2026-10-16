@@ -4,5 +4,6 @@ global:
 scrape_configs:
   - job_name: "linkshortener"
     static_configs:
-      - targets: ["app:8000"]
+      - targets: ["app1:8000", "app2:8000", "app3:8000"]
+
 
