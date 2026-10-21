@@ -24,3 +24,11 @@ def track_click(code: str) -> None:
 def get_clicks(code: str) -> int:
     value = client.get(f"clicks:{code}")
     return int(value) if value else 0
+
+def track_unique_view(code: str, visitor: str) -> None:
+    # HyperLogLog: duplicate visitor apne aap ignore (12 KB fixed memory)
+    client.pfadd(f"uv:{code}", visitor)
+
+
+def get_unique_views(code: str) -> int:
+    return client.pfcount(f"uv:{code}")

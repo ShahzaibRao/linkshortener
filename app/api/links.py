@@ -1,7 +1,7 @@
 import os
 import secrets
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from prometheus_client import Counter
 from pydantic import BaseModel, HttpUrl
@@ -38,6 +38,7 @@ class LinkStats(BaseModel):
     code: str
     url: str
     clicks: int
+    unique_views: int
 
 
 @router.post("/api/v1/links", response_model=ShortenResponse)
@@ -56,11 +57,16 @@ def stats(code: str):
     url = links_repo.get_link(code)
     if url is None:
         raise HTTPException(status_code=404, detail="link not found")
-    return {"code": code, "url": url, "clicks": links_repo.get_clicks(code)}
+    return {
+        "code": code,
+        "url": url,
+        "clicks": links_repo.get_clicks(code),
+        "unique_views": links_repo.get_unique_views(code),
+    }
 
 
 @router.get("/{code}")
-def redirect(code: str):
+def redirect(code: str, request: Request):
     # Filter: "pakka nahi hai" → Redis jaane ki zaroorat nahi, foran 404
     if FILTER_ENABLED:
         if code not in bloom:
@@ -71,5 +77,9 @@ def redirect(code: str):
     if url is None:
         raise HTTPException(status_code=404, detail="link not found")
     links_repo.track_click(code)
+    # Unique view: visitor ki ID HyperLogLog mein (duplicate apne aap ignore)
+    # NOTE: nginx ke peeche sab requests ek hi IP se aati nazar aati hain,
+    # is liye X-Visitor-Id header (real app mein cookie/user-id hoti hai)
+    visitor = request.headers.get("x-visitor-id") or request.client.host
+    links_repo.track_unique_view(code, visitor)
     return RedirectResponse(url=url, status_code=307)
-
